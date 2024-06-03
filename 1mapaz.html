@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <link rel="stylesheet" type="text/css" href="./style.css" />
+  <script src="https://cesium.com/downloads/cesiumjs/releases/1.117/Build/Cesium/Cesium.js"></script>
+  <link href="https://cesium.com/downloads/cesiumjs/releases/1.117/Build/Cesium/Widgets/widgets.css" rel="stylesheet" />
+  <link rel="stylesheet" href="./fontawesome-free-6.1.2-web/css/all.css" />
+  <style>
+    body,
+    html,
+    #cesiumContainer {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+    }
+  </style>
+</head>
+
+<body>
+<div id="cesiumContainer" class="fullSize"></div>
+<script type="text/javascript">
+  var viewer = new Cesium.Viewer("cesiumContainer", {
+    shouldAnimate: true,
+    scene3DOnly: true,
+    selectionIndicator: true, // Enable selection indicator for default behavior
+    baseLayerPicker: false
+  });
+
+  function styleEntities(entities) {
+    entities.forEach(function (entity) {
+      entity.polygon.material = Cesium.Color.fromRandom({ alpha: 0.5 });
+      entity.polygon.outline = true;
+      entity.polygon.outlineColor = Cesium.Color.BLACK;
+      entity.polygon.outlineWidth = 20; // Increased thickness for county boundaries
+    });
+  }
+
+  function stylePrecincts(entities) {
+    entities.forEach(function (entity) {
+      entity.polygon.material = Cesium.Color.BLUE.withAlpha(0.1); // Very transparent blue fill color
+      entity.polygon.outline = true;
+      entity.polygon.outlineColor = Cesium.Color.BLUE; // Blue outline color
+      entity.polygon.outlineWidth = 20; // Ensure boundary is thick
+    });
+  }
+
+  Cesium.GeoJsonDataSource.load("counties.geojson").then(function (dataSource) {
+    viewer.dataSources.add(dataSource);
+    var entities = dataSource.entities.values;
+    styleEntities(entities); // Apply random color and thick outline
+  }).catch(function (error) {
+    console.error("Error loading merged counties GeoJSON data:", error);
+  });
+
+  Cesium.GeoJsonDataSource.load("precinct.geojson").then(function (dataSource) {
+    viewer.dataSources.add(dataSource);
+    var entities = dataSource.entities.values;
+    stylePrecincts(entities);
+
+    entities.forEach(function (entity) {
+      var properties = entity.properties;
+      entity.description = '<table><tr><th>Attribute</th><th>Value</th></tr>' +
+              '<tr><td>CONGRESSIO</td><td>' + properties.CONGRESSIO.getValue() + '</td></tr>' +
+              '<tr><td>LEGISLATIV</td><td>' + properties.LEGISLATIV.getValue() + '</td></tr>' +
+              '<tr><td>County</td><td>' + properties.County.getValue() + '</td></tr>' +
+              '<tr><td>Precinct</td><td>' + properties.Precinct.getValue() + '</td></tr>' +
+              '<tr><td>Democrats</td><td>' + properties.Democrats.getValue() + '</td></tr>' +
+              '<tr><td>Republicans</td><td>' + properties.Republicans.getValue() + '</td></tr>' +
+              '<tr><td>Unaffiliated</td><td>' + properties.Unaffiliated.getValue() + '</td></tr>' +
+              '<tr><td>Libertarian</td><td>' + properties.Libertarian.getValue() + '</td></tr>' +
+              '<tr><td>Green</td><td>' + properties.Green.getValue() + '</td></tr>' +
+              '<tr><td>Independent</td><td>' + properties.Independent.getValue() + '</td></tr>' +
+              '<tr><td>Other Parties</td><td>' + properties["Other Parties"].getValue() + '</td></tr>' +
+              '<tr><td>African America</td><td>' + properties["African America"].getValue() + '</td></tr>' +
+              '<tr><td>Asian</td><td>' + properties.Asian.getValue() + '</td></tr>' +
+              '<tr><td>Caucasian</td><td>' + properties.Caucasian.getValue() + '</td></tr>' +
+              '<tr><td>Hispanic</td><td>' + properties.Hispanic.getValue() + '</td></tr>' +
+              '<tr><td>Native American</td><td>' + properties["Native American"].getValue() + '</td></tr>' +
+              '<tr><td>Unknown</td><td>' + properties.Unknown.getValue() + '</td></tr>' +
+              '</table>';
+    });
+  }).catch(function (error) {
+    console.error("Error loading precincts GeoJSON data:", error);
+  });
+
+  viewer.screenSpaceEventHandler.setInputAction(function onLeftClick(movement) {
+    var pickedObject = viewer.scene.pick(movement.position);
+    if (Cesium.defined(pickedObject) && Cesium.defined(pickedObject.id)) {
+      viewer.selectedEntity = pickedObject.id;
+    } else {
+      viewer.selectedEntity = undefined;
+    }
+  }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
+
+  viewer.camera.setView({
+    destination: Cesium.Rectangle.fromDegrees(-114.818269, 31.332177, -109.045223, 37.004260) // Arizona's bounding box
+  });
+</script>
+</body>
+
+</html>
